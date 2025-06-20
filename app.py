@@ -1,17 +1,18 @@
 # line-bot-chatgpt-redis (LINE SDK v3 compatible)
 # Flask + LINE Messaging API v3 + OpenAI GPT + Redis memory + Command support
 
-
 import os
 import openai
 import redis
 import json
 from flask import Flask, request, abort
 from datetime import datetime
+
 from linebot.v3.webhook import WebhookHandler
+from linebot.v3.webhooks import MessageEvent, TextMessage
 from linebot.v3.exceptions import InvalidSignatureError
 from linebot.v3.messaging import MessagingApi, ApiClient
-from linebot.v3.messaging.models import TextMessage, ReplyMessageRequest
+from linebot.v3.messaging.models import TextMessage as ReplyTextMessage, ReplyMessageRequest
 
 # === Config ===
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -22,9 +23,10 @@ USE_GPT4 = os.getenv("USE_GPT4", "True") == "True"
 MAX_TOKENS_PER_USER_PER_DAY = int(os.getenv("MAX_TOKENS_PER_USER_PER_DAY", 2000))
 ENABLE_COMMANDS = os.getenv("ENABLE_COMMANDS", "True") == "True"
 
-print("📦 DEBUG: LINE_CHANNEL_SECRET =", LINE_CHANNEL_SECRET)
-if not LINE_CHANNEL_SECRET:
-    raise RuntimeError("❌ 環境變數 LINE_CHANNEL_SECRET 未設定，請在 Railway 上加上！")
+# Debug 環境變數載入（可移除）
+#print("📦 DEBUG: LINE_CHANNEL_SECRET =", LINE_CHANNEL_SECRET)
+#if not LINE_CHANNEL_SECRET:
+#    raise RuntimeError("❌ 環境變數 LINE_CHANNEL_SECRET 未設定，請在 Railway 上加上！")
 
 openai.api_key = OPENAI_API_KEY
 redis_client = redis.from_url(REDIS_URL)
@@ -109,7 +111,7 @@ def handle_message(event):
         messaging_api.reply_message(
             ReplyMessageRequest(
                 reply_token=event.reply_token,
-                messages=[TextMessage(text=reply)]
+                messages=[ReplyTextMessage(text=reply)]
             )
         )
 
