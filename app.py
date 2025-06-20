@@ -25,9 +25,9 @@ MAX_TOKENS_PER_USER_PER_DAY = int(os.getenv("MAX_TOKENS_PER_USER_PER_DAY", 2000)
 ENABLE_COMMANDS = os.getenv("ENABLE_COMMANDS", "True") == "True"
 
 # Debug 環境變數載入（可移除）
-print("📦 DEBUG: LINE_CHANNEL_SECRET =", LINE_CHANNEL_SECRET)
-if not LINE_CHANNEL_SECRET:
-    raise RuntimeError("❌ 環境變數 LINE_CHANNEL_SECRET 未設定，請在 Railway 上加上！")
+#print("📦 DEBUG: LINE_CHANNEL_SECRET =", LINE_CHANNEL_SECRET)
+#if not LINE_CHANNEL_SECRET:
+#    raise RuntimeError("❌ 環境變數 LINE_CHANNEL_SECRET 未設定，請在 Railway 上加上！")
 
 openai.api_key = OPENAI_API_KEY
 redis_client = redis.from_url(REDIS_URL)
@@ -101,6 +101,7 @@ def callback():
     body = request.get_data(as_text=True)
     print("📩 收到 LINE Webhook：", body)
     try:
+        print("📦 Webhook 內容解析後：", json.dumps(json.loads(body), indent=2))
         handler.handle(body, signature)
     except InvalidSignatureError:
         print("❌ InvalidSignatureError：簽章驗證失敗")
@@ -123,6 +124,11 @@ def handle_message(event):
                 messages=[ReplyTextMessage(text=reply)]
             )
         )
+
+# === Fallback handler for all MessageEvents ===
+@handler.add(MessageEvent)
+def handle_any_message(event):
+    print(f"⚠️ 未處理的 MessageEvent：type={event.message.__class__.__name__}, content={getattr(event.message, 'text', '')}")
 
 @app.route("/", methods=["GET"])
 def index():
