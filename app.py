@@ -1,5 +1,8 @@
 # line-bot-chatgpt-redis (LINE SDK v3 compatible)
 # Flask + LINE Messaging API v3 + OpenAI GPT + Redis memory + Command support
+print("📦 DEBUG: LINE_CHANNEL_SECRET =", LINE_CHANNEL_SECRET)
+if not LINE_CHANNEL_SECRET:
+    raise RuntimeError("❌ 環境變數 LINE_CHANNEL_SECRET 未設定，請在 Railway 上加上！")
 
 import os
 import openai
