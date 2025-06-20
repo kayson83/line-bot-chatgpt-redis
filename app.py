@@ -107,7 +107,7 @@ def chat_with_gpt(user_id, user_input):
 def callback():
     signature = request.headers['X-Line-Signature']
     body = request.get_data(as_text=True)
-    print("📩 收到 LINE Webhook：", body)
+    #print("📩 收到 LINE Webhook：", body)
     try:
         handler.handle(body, signature)
     except InvalidSignatureError:
