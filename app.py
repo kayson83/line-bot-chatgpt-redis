@@ -1,18 +1,16 @@
-# line-bot-chatgpt-redis (LINE SDK v3 compatible)
-# Flask + LINE Messaging API v3 + OpenAI GPT + Redis memory + Command support
-
 import os
 import openai
 import redis
 import json
 from flask import Flask, request, abort
-from datetime import datetime
+from datetime import datetime, timezone
 
 from linebot.v3.webhook import WebhookHandler
 from linebot.v3.webhooks import MessageEvent
 from linebot.v3.messaging import MessagingApi, ApiClient
 from linebot.v3.messaging.models import TextMessage as ReplyTextMessage, ReplyMessageRequest
 from linebot.v3.exceptions import InvalidSignatureError
+from linebot.v3 import Configuration
 
 # === Config ===
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -23,8 +21,10 @@ USE_GPT4 = os.getenv("USE_GPT4", "True") == "True"
 MAX_TOKENS_PER_USER_PER_DAY = int(os.getenv("MAX_TOKENS_PER_USER_PER_DAY", 2000))
 ENABLE_COMMANDS = os.getenv("ENABLE_COMMANDS", "True") == "True"
 
-# Debug 環境變數載入（可移除）
+print("📦 DEBUG: LINE_CHANNEL_ACCESS_TOKEN =", LINE_CHANNEL_ACCESS_TOKEN)
 print("📦 DEBUG: LINE_CHANNEL_SECRET =", LINE_CHANNEL_SECRET)
+if not LINE_CHANNEL_ACCESS_TOKEN:
+    raise RuntimeError("❌ 環境變數 LINE_CHANNEL_ACCESS_TOKEN 未設定，請在 Railway 上加上！")
 if not LINE_CHANNEL_SECRET:
     raise RuntimeError("❌ 環境變數 LINE_CHANNEL_SECRET 未設定，請在 Railway 上加上！")
 
@@ -34,7 +34,9 @@ redis_client = redis.from_url(REDIS_URL)
 app = Flask(__name__)
 handler = WebhookHandler(LINE_CHANNEL_SECRET)
 
-# === Helper functions ===
+def get_date():
+    return datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
 def get_user_context(user_id):
     context = redis_client.get(f"context:{user_id}")
     return json.loads(context) if context else []
@@ -53,10 +55,6 @@ def increment_token_usage(user_id, tokens):
 def get_token_usage(user_id):
     return int(redis_client.get(f"tokens:{user_id}:{get_date()}") or 0)
 
-def get_date():
-    return datetime.utcnow().strftime("%Y-%m-%d")
-
-# === Main ChatGPT handler ===
 def chat_with_gpt(user_id, user_input):
     print(f"🧠 chat_with_gpt(): user={user_id}, input={user_input}")
 
@@ -93,7 +91,6 @@ def chat_with_gpt(user_id, user_input):
         print("❌ OpenAI API 發生錯誤:", e)
         return "❌ 回覆時發生錯誤，請稍後再試。"
 
-# === Flask endpoints ===
 @app.route("/callback", methods=['POST'])
 def callback():
     signature = request.headers['X-Line-Signature']
@@ -115,7 +112,8 @@ def handle_message(event):
         print("📨 收到 LINE 訊息：", user_input)
         reply = chat_with_gpt(user_id, user_input)
 
-        with ApiClient() as api_client:
+        config = Configuration(access_token=LINE_CHANNEL_ACCESS_TOKEN)
+        with ApiClient(configuration=config) as api_client:
             messaging_api = MessagingApi(api_client)
             print("📤 發送回覆訊息：", reply)
             messaging_api.reply_message(
