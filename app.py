@@ -24,7 +24,6 @@ USE_GPT4 = os.getenv("USE_GPT4", "True") == "True"
 MAX_TOKENS_PER_USER_PER_DAY = int(os.getenv("MAX_TOKENS_PER_USER_PER_DAY", 2000))
 ENABLE_COMMANDS = os.getenv("ENABLE_COMMANDS", "True") == "True"
 
-# Debug 環境變數載入（可移除）
 print("📦 DEBUG: LINE_CHANNEL_SECRET =", LINE_CHANNEL_SECRET)
 if not LINE_CHANNEL_SECRET:
     raise RuntimeError("❌ LINE_CHANNEL_SECRET 未設定，請在 Railway 上加上！")
@@ -67,8 +66,13 @@ def chat_with_gpt(user_id, user_input):
     if ENABLE_COMMANDS and user_input.strip() == "!reset":
         reset_user_context(user_id)
         return "✅ 已重置對話歷史"
+
     if ENABLE_COMMANDS and user_input.strip() == "!help":
-        return "🗨️ 請直接輸入問題，我會用 ChatGPT 回覆你！\n\n!reset 重設對話\n!help 顯示幫助"
+        return "🗨️ 請直接輸入問題，我會用 ChatGPT 回覆你！\n\n!reset 重設對話\n!help 顯示幫助\n!stat 查詢今日 token 使用量"
+
+    if ENABLE_COMMANDS and user_input.strip() == "!stat":
+        used = get_token_usage(user_id)
+        return f"📊 你今天已使用 {used} 個 token，當日限制為 {MAX_TOKENS_PER_USER_PER_DAY}。"
 
     messages = get_user_context(user_id)
     messages.append({"role": "user", "content": user_input})
