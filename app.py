@@ -25,9 +25,9 @@ MAX_TOKENS_PER_USER_PER_DAY = int(os.getenv("MAX_TOKENS_PER_USER_PER_DAY", 2000)
 ENABLE_COMMANDS = os.getenv("ENABLE_COMMANDS", "True") == "True"
 
 # Debug 環境變數載入（可移除）
-#print("📦 DEBUG: LINE_CHANNEL_SECRET =", LINE_CHANNEL_SECRET)
-#if not LINE_CHANNEL_SECRET:
-#    raise RuntimeError("❌ 環境變數 LINE_CHANNEL_SECRET 未設定，請在 Railway 上加上！")
+print("📦 DEBUG: LINE_CHANNEL_SECRET =", LINE_CHANNEL_SECRET)
+if not LINE_CHANNEL_SECRET:
+    raise RuntimeError("❌ 環境變數 LINE_CHANNEL_SECRET 未設定，請在 Railway 上加上！")
 
 openai.api_key = OPENAI_API_KEY
 redis_client = redis.from_url(REDIS_URL)
@@ -59,6 +59,8 @@ def get_date():
 
 # === Main ChatGPT handler ===
 def chat_with_gpt(user_id, user_input):
+    print(f"🧠 chat_with_gpt(): user={user_id}, input={user_input}")
+
     if ENABLE_COMMANDS and user_input.strip() == "!reset":
         reset_user_context(user_id)
         return "✅ 已重置對話歷史"
@@ -79,6 +81,8 @@ def chat_with_gpt(user_id, user_input):
         reply = response.choices[0].message.content
         total_tokens = response.usage.total_tokens
 
+        print(f"✅ GPT 回覆成功 (tokens: {total_tokens}) →\n{reply}")
+
         if get_token_usage(user_id) + total_tokens > MAX_TOKENS_PER_USER_PER_DAY:
             return "⚠️ 今天已達使用上限，請明天再試。"
 
@@ -87,7 +91,7 @@ def chat_with_gpt(user_id, user_input):
         update_user_context(user_id, messages[-10:])
         return reply
     except Exception as e:
-        print("OpenAI Error:", e)
+        print("❌ OpenAI API 發生錯誤:", e)
         return "❌ 回覆時發生錯誤，請稍後再試。"
 
 # === Flask endpoints ===
@@ -95,26 +99,34 @@ def chat_with_gpt(user_id, user_input):
 def callback():
     signature = request.headers['X-Line-Signature']
     body = request.get_data(as_text=True)
+    print("📩 收到 LINE Webhook：", body)
     try:
         handler.handle(body, signature)
     except InvalidSignatureError:
+        print("❌ InvalidSignatureError：簽章驗證失敗")
         abort(400)
     return 'OK'
 
 @handler.add(event=MessageEvent, message=IncomingTextMessage)
 def handle_message(event):
+    print("📨 收到 LINE 訊息：", event.message.text)
     user_id = event.source.user_id
     user_input = event.message.text
     reply = chat_with_gpt(user_id, user_input)
 
     with ApiClient() as api_client:
         messaging_api = MessagingApi(api_client)
+        print("📤 發送回覆訊息：", reply)
         messaging_api.reply_message(
             ReplyMessageRequest(
                 reply_token=event.reply_token,
                 messages=[ReplyTextMessage(text=reply)]
             )
         )
+
+@app.route("/", methods=["GET"])
+def index():
+    return "✅ LINE Bot 已部署成功，請透過 LINE 傳訊測試。"
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000)))
