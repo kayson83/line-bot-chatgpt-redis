@@ -10,7 +10,6 @@ from datetime import datetime
 
 from linebot.v3.webhook import WebhookHandler
 from linebot.v3.webhooks import MessageEvent
-from linebot.v3.messaging.models import TextMessageContent  # 修正這裡為 TextMessageContent
 from linebot.v3.messaging import MessagingApi, ApiClient
 from linebot.v3.messaging.models import TextMessage as ReplyTextMessage, ReplyMessageRequest
 from linebot.v3.exceptions import InvalidSignatureError
@@ -108,27 +107,25 @@ def callback():
         abort(400)
     return 'OK'
 
-@handler.add(event=MessageEvent, message=TextMessageContent)
-def handle_message(event):
-    print("📨 收到 LINE 訊息：", event.message.text)
-    user_id = event.source.user_id
-    user_input = event.message.text
-    reply = chat_with_gpt(user_id, user_input)
-
-    with ApiClient() as api_client:
-        messaging_api = MessagingApi(api_client)
-        print("📤 發送回覆訊息：", reply)
-        messaging_api.reply_message(
-            ReplyMessageRequest(
-                reply_token=event.reply_token,
-                messages=[ReplyTextMessage(text=reply)]
-            )
-        )
-
-# === Fallback handler for all MessageEvents ===
 @handler.add(MessageEvent)
-def handle_any_message(event):
-    print(f"⚠️ 未處理的 MessageEvent：type={event.message.__class__.__name__}, content={getattr(event.message, 'text', '')}")
+def handle_message(event):
+    if event.message.type == "text":
+        user_id = event.source.user_id
+        user_input = event.message.text
+        print("📨 收到 LINE 訊息：", user_input)
+        reply = chat_with_gpt(user_id, user_input)
+
+        with ApiClient() as api_client:
+            messaging_api = MessagingApi(api_client)
+            print("📤 發送回覆訊息：", reply)
+            messaging_api.reply_message(
+                ReplyMessageRequest(
+                    reply_token=event.reply_token,
+                    messages=[ReplyTextMessage(text=reply)]
+                )
+            )
+    else:
+        print(f"⚠️ 收到非文字訊息，type={event.message.type}")
 
 @app.route("/", methods=["GET"])
 def index():
