@@ -10,7 +10,7 @@ from datetime import datetime
 
 from linebot.v3.webhook import WebhookHandler
 from linebot.v3.webhooks import MessageEvent
-from linebot.v3.messaging.models import TextMessage as IncomingTextMessage
+from linebot.v3.messaging.models import TextMessageContent  # 修正這裡為 TextMessageContent
 from linebot.v3.messaging import MessagingApi, ApiClient
 from linebot.v3.messaging.models import TextMessage as ReplyTextMessage, ReplyMessageRequest
 from linebot.v3.exceptions import InvalidSignatureError
@@ -25,9 +25,9 @@ MAX_TOKENS_PER_USER_PER_DAY = int(os.getenv("MAX_TOKENS_PER_USER_PER_DAY", 2000)
 ENABLE_COMMANDS = os.getenv("ENABLE_COMMANDS", "True") == "True"
 
 # Debug 環境變數載入（可移除）
-#print("📦 DEBUG: LINE_CHANNEL_SECRET =", LINE_CHANNEL_SECRET)
-#if not LINE_CHANNEL_SECRET:
-#    raise RuntimeError("❌ 環境變數 LINE_CHANNEL_SECRET 未設定，請在 Railway 上加上！")
+print("📦 DEBUG: LINE_CHANNEL_SECRET =", LINE_CHANNEL_SECRET)
+if not LINE_CHANNEL_SECRET:
+    raise RuntimeError("❌ 環境變數 LINE_CHANNEL_SECRET 未設定，請在 Railway 上加上！")
 
 openai.api_key = OPENAI_API_KEY
 redis_client = redis.from_url(REDIS_URL)
@@ -108,7 +108,7 @@ def callback():
         abort(400)
     return 'OK'
 
-@handler.add(event=MessageEvent, message=IncomingTextMessage)
+@handler.add(event=MessageEvent, message=TextMessageContent)
 def handle_message(event):
     print("📨 收到 LINE 訊息：", event.message.text)
     user_id = event.source.user_id
