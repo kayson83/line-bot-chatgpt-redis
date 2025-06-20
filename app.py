@@ -1,8 +1,6 @@
 # line-bot-chatgpt-redis (LINE SDK v3 compatible)
 # Flask + LINE Messaging API v3 + OpenAI GPT + Redis memory + Command support
-print("📦 DEBUG: LINE_CHANNEL_SECRET =", LINE_CHANNEL_SECRET)
-if not LINE_CHANNEL_SECRET:
-    raise RuntimeError("❌ 環境變數 LINE_CHANNEL_SECRET 未設定，請在 Railway 上加上！")
+
 
 import os
 import openai
@@ -23,6 +21,10 @@ REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 USE_GPT4 = os.getenv("USE_GPT4", "True") == "True"
 MAX_TOKENS_PER_USER_PER_DAY = int(os.getenv("MAX_TOKENS_PER_USER_PER_DAY", 2000))
 ENABLE_COMMANDS = os.getenv("ENABLE_COMMANDS", "True") == "True"
+
+print("📦 DEBUG: LINE_CHANNEL_SECRET =", LINE_CHANNEL_SECRET)
+if not LINE_CHANNEL_SECRET:
+    raise RuntimeError("❌ 環境變數 LINE_CHANNEL_SECRET 未設定，請在 Railway 上加上！")
 
 openai.api_key = OPENAI_API_KEY
 redis_client = redis.from_url(REDIS_URL)
