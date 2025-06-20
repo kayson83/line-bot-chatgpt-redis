@@ -72,7 +72,7 @@ def chat_with_gpt(user_id, user_input):
     model = "gpt-4" if USE_GPT4 else "gpt-3.5-turbo"
 
     try:
-        response = openai.ChatCompletion.create(
+        response = openai.chat.completions.create(
             model=model,
             messages=messages,
             temperature=0.7
