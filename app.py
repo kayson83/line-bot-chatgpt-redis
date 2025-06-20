@@ -23,13 +23,13 @@ REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 USE_GPT4 = os.getenv("USE_GPT4", "True") == "True"
 MAX_TOKENS_PER_USER_PER_DAY = int(os.getenv("MAX_TOKENS_PER_USER_PER_DAY", 2000))
 ENABLE_COMMANDS = os.getenv("ENABLE_COMMANDS", "True") == "True"
-
+"""
 print("📦 DEBUG: LINE_CHANNEL_SECRET =", LINE_CHANNEL_SECRET)
 if not LINE_CHANNEL_SECRET:
     raise RuntimeError("❌ LINE_CHANNEL_SECRET 未設定，請在 Railway 上加上！")
 if not LINE_CHANNEL_ACCESS_TOKEN:
     raise RuntimeError("❌ LINE_CHANNEL_ACCESS_TOKEN 未設定，請在 Railway 上加上！")
-
+"""
 openai.api_key = OPENAI_API_KEY
 redis_client = redis.from_url(REDIS_URL)
 
@@ -88,7 +88,8 @@ def chat_with_gpt(user_id, user_input):
         reply = response.choices[0].message.content
         total_tokens = response.usage.total_tokens
 
-        print(f"✅ GPT 回覆成功 (tokens: {total_tokens}) →\n{reply}")
+        #print(f"✅ GPT 回覆成功 (tokens: {total_tokens}) →\n{reply}")
+        print(f"✅ GPT 回覆成功 (tokens: {total_tokens})")
 
         if get_token_usage(user_id) + total_tokens > MAX_TOKENS_PER_USER_PER_DAY:
             return "⚠️ 今天已達使用上限，請明天再試。"
