@@ -92,14 +92,15 @@ def chat_with_gpt(user_id, user_input):
 
 @app.route("/callback", methods=['POST'])
 def callback():
-    signature = request.headers['X-Line-Signature']
+    signature = request.headers.get('X-Line-Signature')
     body = request.get_data(as_text=True)
     print("📩 收到 LINE Webhook：", body)
     try:
-        print("📦 Webhook 內容解析後：", json.dumps(json.loads(body), indent=2))
         handler.handle(body, signature)
-    except InvalidSignatureError:
-        print("❌ InvalidSignatureError：簽章驗證失敗")
+    except Exception as e:
+        import traceback
+        print("❌ Webhook 處理錯誤：", e)
+        traceback.print_exc()
         abort(400)
     return 'OK'
 
