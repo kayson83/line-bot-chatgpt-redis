@@ -10,7 +10,6 @@ from linebot.v3.webhooks import MessageEvent
 from linebot.v3.messaging import MessagingApi, ApiClient
 from linebot.v3.messaging.models import TextMessage as ReplyTextMessage, ReplyMessageRequest
 from linebot.v3.exceptions import InvalidSignatureError
-from linebot.v3 import Configuration
 
 # === Config ===
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -112,8 +111,7 @@ def handle_message(event):
         print("📨 收到 LINE 訊息：", user_input)
         reply = chat_with_gpt(user_id, user_input)
 
-        config = Configuration(access_token=LINE_CHANNEL_ACCESS_TOKEN)
-        with ApiClient(configuration=config) as api_client:
+        with ApiClient(access_token=LINE_CHANNEL_ACCESS_TOKEN) as api_client:
             messaging_api = MessagingApi(api_client)
             print("📤 發送回覆訊息：", reply)
             messaging_api.reply_message(
