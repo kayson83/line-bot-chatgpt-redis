@@ -1,14 +1,16 @@
-# line-bot-chatgpt-redis
-# Flask + LINE Messaging API + OpenAI GPT + Redis memory + Command support
+# line-bot-chatgpt-redis (LINE SDK v3 compatible)
+# Flask + LINE Messaging API v3 + OpenAI GPT + Redis memory + Command support
 
 import os
 import openai
 import redis
 import json
 from flask import Flask, request, abort
-from linebot import LineBotApi, WebhookHandler
-from linebot.exceptions import InvalidSignatureError
-from linebot.models import MessageEvent, TextMessage, TextSendMessage
+from datetime import datetime
+from linebot.v3.webhook import WebhookHandler
+from linebot.v3.exceptions import InvalidSignatureError
+from linebot.v3.messaging import MessagingApi, ApiClient
+from linebot.v3.messaging.models import TextMessage, ReplyMessageRequest
 
 # === Config ===
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -23,7 +25,6 @@ openai.api_key = OPENAI_API_KEY
 redis_client = redis.from_url(REDIS_URL)
 
 app = Flask(__name__)
-line_bot_api = LineBotApi(LINE_CHANNEL_ACCESS_TOKEN)
 handler = WebhookHandler(LINE_CHANNEL_SECRET)
 
 # === Helper functions ===
@@ -46,7 +47,6 @@ def get_token_usage(user_id):
     return int(redis_client.get(f"tokens:{user_id}:{get_date()}") or 0)
 
 def get_date():
-    from datetime import datetime
     return datetime.utcnow().strftime("%Y-%m-%d")
 
 # === Main ChatGPT handler ===
@@ -93,12 +93,20 @@ def callback():
         abort(400)
     return 'OK'
 
-@handler.add(MessageEvent, message=TextMessage)
+@handler.add(event=MessageEvent, message=TextMessage)
 def handle_message(event):
     user_id = event.source.user_id
     user_input = event.message.text
     reply = chat_with_gpt(user_id, user_input)
-    line_bot_api.reply_message(event.reply_token, TextSendMessage(text=reply))
+
+    with ApiClient() as api_client:
+        messaging_api = MessagingApi(api_client)
+        messaging_api.reply_message(
+            ReplyMessageRequest(
+                reply_token=event.reply_token,
+                messages=[TextMessage(text=reply)]
+            )
+        )
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000)))
