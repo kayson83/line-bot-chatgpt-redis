@@ -9,10 +9,11 @@ from flask import Flask, request, abort
 from datetime import datetime
 
 from linebot.v3.webhook import WebhookHandler
-from linebot.v3.webhooks import MessageEvent, TextMessage
-from linebot.v3.exceptions import InvalidSignatureError
+from linebot.v3.webhooks import MessageEvent
+from linebot.v3.messaging.models import TextMessage as IncomingTextMessage
 from linebot.v3.messaging import MessagingApi, ApiClient
 from linebot.v3.messaging.models import TextMessage as ReplyTextMessage, ReplyMessageRequest
+from linebot.v3.exceptions import InvalidSignatureError
 
 # === Config ===
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -100,7 +101,7 @@ def callback():
         abort(400)
     return 'OK'
 
-@handler.add(event=MessageEvent, message=TextMessage)
+@handler.add(event=MessageEvent, message=IncomingTextMessage)
 def handle_message(event):
     user_id = event.source.user_id
     user_input = event.message.text
